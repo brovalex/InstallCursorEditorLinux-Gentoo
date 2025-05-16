@@ -17,11 +17,13 @@ echo -e "\n${CYAN}Config cursor...${NC}"
 setup_cursor
 
 # Setup update script
-echo -e "\n${CYAN}Setting up update script...${NC}"
+echo "Skipping update script set up"
+#echo -e "\n${CYAN}Setting up update script...${NC}"
 #setup_update_script
 
 # Setup systemd service
-echo -e "\n${CYAN}Setting up systemd service...${NC}"
+echo "Skipping systemd service set up"
+#echo -e "\n${CYAN}Setting up systemd service...${NC}"
 #setup_systemd_service
 
 # Remove files

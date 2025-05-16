@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root." >&2
+  exit 1
+fi
+
 function download_cursor() {
     # Create the output directory if it doesn't exist
     mkdir -p "$OUTPUT_DIRECTORY"
@@ -61,8 +66,8 @@ function setup_cursor() {
     # Extract the appimage
     echo -e "${CYAN}Extracting AppImage (this may take a moment)...${NC}"
     cd /opt/cursor && \
-	sudo /opt/cursor/$FILE_NAME --appimage-extract > /dev/null 2>&1 && \
-	sudo chown -R $USER:$USER /opt/cursor/squashfs-root && \
+	/opt/cursor/$FILE_NAME --appimage-extract > /dev/null 2>&1 && \
+	chown -R root:users /opt/cursor/squashfs-root && \
     cd $CURRENT_DIRECTORY
     echo -e "${GREEN}✅ Extracted cursor to: '${EXEC_PATH}'${NC}"
     echo -e "${GREEN}ℹ️ All extracted content is located in: /opt/cursor/squashfs-root/${NC}"
@@ -89,77 +94,77 @@ EOF
         exit 1
     fi
 
-    sudo tee "/usr/local/bin/cursor" > /dev/null < "${CURRENT_DIRECTORY}/shell/cursor-command.sh"
-    sudo chmod +x "/usr/local/bin/cursor"
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Cursor command installed successfully${NC}"
-    else
-        echo -e "${RED}❌ Error installing cursor command${NC}"
-        exit 1
-    fi
+    #tee "/usr/local/bin/cursor" > /dev/null < "${CURRENT_DIRECTORY}/shell/cursor-command.sh"
+    #chmod +x "/usr/local/bin/cursor"
+    #if [ $? -eq 0 ]; then
+    #    echo -e "${GREEN}✅ Cursor command installed successfully${NC}"
+    #else
+    #    echo -e "${RED}❌ Error installing cursor command${NC}"
+    #    exit 1
+    #fi
 }
 
 
-function setup_update_script() {
-    local UPDATE_SCRIPT="/opt/cursor/update-cursor.sh"
-
-    # Create script of update
-    sudo tee "$UPDATE_SCRIPT" > /dev/null <<EOF
-#!/bin/bash
-APPDIR=/opt/cursor
-API_URL="$URL_CURSOR_DOWN"
-
-# Get the download URL from the API
-APPIMAGE_URL=\$(curl -s "\$API_URL" | grep -o '"downloadUrl":"[^"]*"' | cut -d'"' -f4)
-
+#function setup_update_script() {
+#    local UPDATE_SCRIPT="/opt/cursor/update-cursor.sh"
+#
+#    # Create script of update
+#    sudo tee "$UPDATE_SCRIPT" > /dev/null <<EOF
+##!/bin/bash
+#APPDIR=/opt/cursor
+#API_URL="$URL_CURSOR_DOWN"
+#
+## Get the download URL from the API
+#APPIMAGE_URL=\$(curl -s "\$API_URL" | grep -o '"downloadUrl":"[^"]*"' | cut -d'"' -f4)
+#
 # Extract the version from the URL
-VERSION=\$(echo "\$APPIMAGE_URL" | grep -o 'Cursor-[0-9.]*' | cut -d'-' -f2)
+#VERSION=\$(echo "\$APPIMAGE_URL" | grep -o 'Cursor-[0-9.]*' | cut -d'-' -f2)
 
-# Download the latest version
-echo "Downloading Cursor version \$VERSION..."
-wget -O "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage" "\$APPIMAGE_URL"
-chmod +x "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage"
+## Download the latest version
+#echo "Downloading Cursor version \$VERSION..."
+#wget -O "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage" "\$APPIMAGE_URL"
+#chmod +x "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage"
+#
+## Extract the appimage
+#echo "Extracting AppImage (this may take a moment)..."
+#cd \$APPDIR && sudo "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage" --appimage-extract > /dev/null 2>&1 && \
+#    sudo chown $USER:$USER \$APPDIR/squashfs-root && \
+#    cd -
+#
+#echo "Cursor has been updated to version \$VERSION"
+#echo "All extracted content is located in: \$APPDIR/squashfs-root/"
+#EOF
+#
+#    # permissions to script execution
+#    sudo chmod +x "$UPDATE_SCRIPT"
+#    echo -e "${GREEN}✅ Update script created at $UPDATE_SCRIPT${NC}"
+#}
 
-# Extract the appimage
-echo "Extracting AppImage (this may take a moment)..."
-cd \$APPDIR && sudo "\$APPDIR/cursor-\${VERSION}-x86_64.AppImage" --appimage-extract > /dev/null 2>&1 && \
-    sudo chown $USER:$USER \$APPDIR/squashfs-root && \
-    cd -
-
-echo "Cursor has been updated to version \$VERSION"
-echo "All extracted content is located in: \$APPDIR/squashfs-root/"
-EOF
-
-    # permissions to script execution
-    sudo chmod +x "$UPDATE_SCRIPT"
-    echo -e "${GREEN}✅ Update script created at $UPDATE_SCRIPT${NC}"
-}
-
-function setup_systemd_service() {
-    local SERVICE_FILE=~/.config/systemd/system/update-cursor.service
-
-    # Ensure the systemd directory exists
-    mkdir -p ~/.config/systemd/system
-
-    # Create the systemd service file
-    tee "$SERVICE_FILE" > /dev/null <<EOF
-[Unit]
-Description=Update Cursor IDE
-
-[Service]
-ExecStart=/opt/cursor/update-cursor.sh
-Type=oneshot
-
-[Install]
-WantedBy=default.target
-EOF
-
-    # Enable and start the service
-    sudo systemctl enable $SERVICE_FILE
-    sudo systemctl start update-cursor.service
-
-    echo -e "${GREEN}✅ Systemd service for Cursor IDE updates created and started.${NC}"
-}
+#function setup_systemd_service() {
+#    local SERVICE_FILE=~/.config/systemd/system/update-cursor.service#
+#
+#    # Ensure the systemd directory exists
+#    mkdir -p ~/.config/systemd/system
+#
+#    # Create the systemd service file
+#    tee "$SERVICE_FILE" > /dev/null <<EOF
+#[Unit]
+#Description=Update Cursor IDE
+#
+#[Service]
+#ExecStart=/opt/cursor/update-cursor.sh
+#Type=oneshot
+#
+#[Install]
+#WantedBy=default.target
+#EOF
+#
+#    # Enable and start the service
+#    sudo systemctl enable $SERVICE_FILE
+#    sudo systemctl start update-cursor.service
+#
+#    echo -e "${GREEN}✅ Systemd service for Cursor IDE updates created and started.${NC}"
+#}
 
 remove_files() {
     # Remove the output directory
